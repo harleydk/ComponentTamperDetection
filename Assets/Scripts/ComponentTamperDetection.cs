@@ -2,10 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace harleydk.ComponentTamperDetection
 {
@@ -195,7 +197,6 @@ namespace harleydk.ComponentTamperDetection
             Debug.Log($"Locked: {this.Locked}");
         }
 
-        // TOOD: Bring this outside, to be better unit-tested outside of this monobehaviour.
         private Dictionary<string, int> calculateHashFromPublicFields()
         {
             var fieldsAndHashes = new Dictionary<string, int>();
@@ -282,6 +283,34 @@ namespace harleydk.ComponentTamperDetection
                 {
                     fieldsAndHashes.Add(field.Name, objectRef.ToString().GetHashCode());
                 }
+                else if (objectRef is Vector3)
+                {
+                    string v3s = ((Vector3)objectRef).ToString();
+                    fieldsAndHashes.Add(field.Name, v3s.GetHashCode());
+                }
+                else if (objectRef is Rect)
+                {
+                    string rect = ((Rect)objectRef).ToString();
+                    fieldsAndHashes.Add(field.Name, rect.GetHashCode());
+                }
+                else if (objectRef is Vector2)
+                {
+                    string v2s = ((Vector2)objectRef).ToString();
+                    fieldsAndHashes.Add(field.Name, v2s.GetHashCode());
+                }
+                else if (objectRef is UnityEvent)
+                {
+                    var theUnityEvent = ((UnityEvent)objectRef);
+                    if (theUnityEvent.GetPersistentEventCount() == 0)
+                    {
+                        fieldsAndHashes.Add(field.Name, 0);
+                    }
+                    else
+                    {
+                        string eventsValue = GetUnityEventValue(ScriptReference, field.Name);
+                        fieldsAndHashes.Add(field.Name, eventsValue.GetHashCode());
+                    }
+                }
                 else
                 {
                     Debug.LogWarning($"Could not get hash-code for field {field.Name} on MonoBehaviour {ScriptReference.name} | GO {ScriptReference.gameObject.name}");
@@ -289,6 +318,57 @@ namespace harleydk.ComponentTamperDetection
             }
 
             return fieldsAndHashes;
+        }
+
+        public static string GetUnityEventValue(object componentWithEvents, string unityEventName)
+        {
+            List<string> eventHandlerData = new List<string>();
+
+            SerializedObject monobehaviourRef = new SerializedObject((UnityEngine.Object)componentWithEvents);
+            SerializedProperty unityEventHandlers = monobehaviourRef.FindProperty(unityEventName).FindPropertyRelative("m_PersistentCalls.m_Calls");
+
+            for (int eventHandlerIndex = 0; eventHandlerIndex < unityEventHandlers.arraySize; eventHandlerIndex++)
+            {
+                UnityEngine.Object target = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Target").objectReferenceValue;
+                eventHandlerData.Add(target.name);
+
+                string methodName = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_MethodName").stringValue;
+                MethodInfo method = target.GetType().GetMethod(methodName);
+                eventHandlerData.Add(method.Name);
+
+                var eventParams = method.GetParameters();
+                if (eventParams.Any())
+                {
+                    // only deal with the first parameter. Because that's what UnityEvents in the editor allow for.
+                    string typeName = method.GetParameters()[0].ParameterType.Name;
+                    string value = string.Empty;
+                    switch (typeName)
+                    {
+                        case "Boolean":
+                            value = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Arguments.m_BoolArgument").boolValue.ToString();
+                            break;
+                        case "String":
+                            value = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Arguments.m_StringArgument").stringValue;
+                            break;
+                        case "Int32":
+                            value = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Arguments.m_IntArgument").intValue.ToString();
+                            break;
+                        case "Single":
+                            value = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Arguments.m_FloatArgument").floatValue.ToString();
+                            break;
+                        case "GameObject":
+                            value = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Arguments.m_ObjectArgument").objectReferenceValue.name;
+                            break;
+                        default:
+                            Debug.Log($"No type for {typeName}");
+                            break;
+                    }
+
+                    eventHandlerData.Add(value);
+                } // end if any parameters to this unity event-handler
+            }
+
+            return string.Join("§", eventHandlerData);
         }
 
         public static string GetGameObjectPath(Transform transform)

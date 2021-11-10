@@ -17,13 +17,12 @@ namespace harleydk.ComponentTamperDetection
         private GUIStyle lockedGuiStyle = new GUIStyle();
         private GUIStyle notlockedGuiStyle = new GUIStyle();
 
-
         public override void OnInspectorGUI()
         {
             // https://answers.unity.com/questions/1154384/labelfield-wont-change-background-color.html
             //iOSAppInBackgroundBehavior-Color: green, red(white text);
             setupRichText();
-
+            
             ComponentTamperDetection tamperDetectionTarget = (ComponentTamperDetection)target;
             DrawDefaultInspector();
 
@@ -121,7 +120,7 @@ namespace harleydk.ComponentTamperDetection
                 leftAlignedGreen = new GUIStyle(EditorStyles.label);
             }
             leftAlignedGreen.alignment = TextAnchor.LowerLeft;
-            leftAlignedGreen.normal.textColor = Color.green;
+            leftAlignedGreen.normal.textColor = Color.blue;
             leftAlignedGreen.richText = true;
 
             if (leftAlignedRed == null)
@@ -150,7 +149,7 @@ namespace harleydk.ComponentTamperDetection
             rightAlignedGreen.richText = true;
             rightAlignedGreen.alignment = TextAnchor.LowerLeft;
             rightAlignedGreen.fontStyle = FontStyle.Italic;
-            rightAlignedGreen.normal.textColor = Color.green;
+            rightAlignedGreen.normal.textColor = Color.blue;
 
 
             Texture2D lockedTexture = new Texture2D(2, 2);
