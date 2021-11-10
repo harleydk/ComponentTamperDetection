@@ -14,15 +14,15 @@ namespace harleydk.ComponentTamperDetection
         private GUIStyle leftAlignedRed;
         private GUIStyle rightAlignedRed;
         private GUIStyle rightAlignedGreen;
-        private GUIStyle lockedGuiStyle = new GUIStyle();
-        private GUIStyle notlockedGuiStyle = new GUIStyle();
+        private GUIStyle lockedGuiStyle;
+        private GUIStyle notlockedGuiStyle;
 
         public override void OnInspectorGUI()
         {
             // https://answers.unity.com/questions/1154384/labelfield-wont-change-background-color.html
             //iOSAppInBackgroundBehavior-Color: green, red(white text);
             setupRichText();
-            
+
             ComponentTamperDetection tamperDetectionTarget = (ComponentTamperDetection)target;
             DrawDefaultInspector();
 
@@ -62,27 +62,26 @@ namespace harleydk.ComponentTamperDetection
                     {
                         GUILayout.BeginHorizontal();
 
-                        GUILayout.Label($"{field.Key}", rt, GUILayout.Width(200));
-
-                        //EditorGUILayout.LabelField($"{field.Value}", leftAligned, GUILayout.Width(100));
-
                         if (tamperDetectionTarget._latestHashes != null && tamperDetectionTarget._latestHashes.ContainsKey(field.Key))
                         {
                             bool differentHashRegistered = field.Value != tamperDetectionTarget._latestHashes[field.Key];
                             if (differentHashRegistered)
                             {
+                                GUILayout.Label($"{field.Key}", leftAlignedRed, GUILayout.Width(200));
                                 int differentHash = tamperDetectionTarget._latestHashes[field.Key];
                                 EditorGUILayout.LabelField($"{differentHash}", leftAlignedRed, GUILayout.Width(100));
                                 EditorGUILayout.LabelField($"Changed", rightAlignedRed);
                             }
                             else
                             {
+                                GUILayout.Label($"{field.Key}", rt, GUILayout.Width(200));
                                 EditorGUILayout.LabelField($"{field.Value}", leftAlignedGreen, GUILayout.Width(100));
                                 GUILayout.Label("OK", rightAlignedGreen);
                             }
                         }
                         else
                         {
+                            GUILayout.Label($"{field.Key}", rt, GUILayout.Width(200));
                             EditorGUILayout.LabelField($"{field.Value}", leftAlignedGreen, GUILayout.Width(100));
                             GUILayout.Label("OK", rightAlignedGreen);
                         }
@@ -120,7 +119,6 @@ namespace harleydk.ComponentTamperDetection
                 leftAlignedGreen = new GUIStyle(EditorStyles.label);
             }
             leftAlignedGreen.alignment = TextAnchor.LowerLeft;
-            leftAlignedGreen.normal.textColor = Color.blue;
             leftAlignedGreen.richText = true;
 
             if (leftAlignedRed == null)
@@ -149,9 +147,11 @@ namespace harleydk.ComponentTamperDetection
             rightAlignedGreen.richText = true;
             rightAlignedGreen.alignment = TextAnchor.LowerLeft;
             rightAlignedGreen.fontStyle = FontStyle.Italic;
-            rightAlignedGreen.normal.textColor = Color.blue;
 
-
+            if (lockedGuiStyle == null)
+            {
+                lockedGuiStyle = new GUIStyle();
+            }
             Texture2D lockedTexture = new Texture2D(2, 2);
             lockedTexture.SetColor(new Color(0, 230, 0, 128));//r,g,b,a 
             lockedGuiStyle.fontStyle = FontStyle.Bold;
@@ -160,10 +160,15 @@ namespace harleydk.ComponentTamperDetection
             lockedGuiStyle.fontSize = 15;
             lockedGuiStyle.normal.background = lockedTexture;
 
+            if (notlockedGuiStyle == null)
+            {
+                notlockedGuiStyle = new GUIStyle();
+            }
             Texture2D notLockedTexture = new Texture2D(2, 2);
             notLockedTexture.SetColor(new Color(230, 0, 0, 128));//r,g,b,a 
             notlockedGuiStyle.fontStyle = FontStyle.Bold;
             notlockedGuiStyle.fontSize = 15;
+            lockedGuiStyle.richText = true;
             notlockedGuiStyle.alignment = TextAnchor.MiddleCenter;
             notlockedGuiStyle.normal.background = notLockedTexture;
         }

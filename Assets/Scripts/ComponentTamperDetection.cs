@@ -330,6 +330,12 @@ namespace harleydk.ComponentTamperDetection
             for (int eventHandlerIndex = 0; eventHandlerIndex < unityEventHandlers.arraySize; eventHandlerIndex++)
             {
                 UnityEngine.Object target = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Target").objectReferenceValue;
+                if ( target == null)
+                {
+                    eventHandlerData.Add("unfinishedBusiness");
+                    continue;
+                }
+
                 eventHandlerData.Add(target.name);
 
                 string methodName = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_MethodName").stringValue;
