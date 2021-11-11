@@ -78,7 +78,7 @@ namespace Assets
 
 ... the ComponentTamperDetection will react dynamically to any editor-changes made:
 
-![DynamicChanges](Documentation/DynamicChanges.gif)
+![DynamicChanges](Documentation/dynamicChanges.gif)
 
 This is the preferred option, as it will immediately give you a visual clue that something is amiss.
 
