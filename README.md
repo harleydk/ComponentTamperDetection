@@ -89,33 +89,36 @@ Visual observation is one thing - but when it gets time to distribute your game,
 The ComponentTamperDetection works well in this regard. Simply add a [unit-test](https://docs.unity3d.com/Manual/testing-editortestsrunner.html) to iterate through all the ComponentTamperDetections and sound the alarm if a supposedly locked-down component has changed, unbeknownst to you:
 
 ```
- [Test]
- public void ComponentsWithTamperDetectionHaveNotChanged()
- {
-     // arrange
-     var componentTamperDetectors = GameObject.FindObjectsOfType<ComponentTamperDetection>()
-         .Where(c => c.ScriptReference != null);
-     // act
-     List<string> changedComponents = new List<string>();
-     foreach( var componentTamperDetector in componentTamperDetectors)
-     {
-         bool hasComponentChanged = componentTamperDetector.HasComponentChanged();
-         if (hasComponentChanged)
-             changedComponents.Add($"{componentTamperDetector.gameObject.name}|{componentTamperDetector.name}|{componentTamperDetector.ScriptReference.name}");
-     }
-     // assert
-     bool hasAnyComponentsBeenTamperedwith = changedComponents.Any();
-     Assert.IsFalse(hasAnyComponentsBeenTamperedwith, $"The following ComponentTamperDetectors reported changed values." +
-         $" If they seem fine, lock them down, else restore them to their former glory. {string.Join(",", changedComponents)}."); // no components should've been tampered with
- }
+[Test]
+public void ComponentsWithTamperDetectionHaveNotChanged()
+{
+    // arrange
+    var componentTamperDetectors = GameObject.FindObjectsOfType<ComponentTamperDetection>()
+        .Where(c => c.ScriptReference != null);
+
+    // act
+    List<string> changedComponents = new List<string>();
+    foreach (var componentTamperDetector in componentTamperDetectors)
+    {
+        bool hasComponentChanged = componentTamperDetector.HasComponentChanged();
+        if (hasComponentChanged)
+            changedComponents.Add($"{componentTamperDetector.gameObject.name}|{componentTamperDetector.name}|{componentTamperDetector.ScriptReference.name}");
+    }
+
+    // assert
+    bool hasAnyComponentsBeenTamperedwith = changedComponents.Any();
+    Assert.IsFalse(hasAnyComponentsBeenTamperedwith, $"The following ComponentTamperDetectors reported changed values." +
+        $" If they seem fine, lock them down, else restore them to their former glory. \n" +
+        $"{string.Join(System.Environment.NewLine, changedComponents)}."); // no components should've been tampered with
+}
 
 ```
+## I get by with a little help from my friends
+
+<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="Ghi82pFzV" data-color="#FFDD00" data-emoji=""  data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
+
 
 ## On GameObject comparison
 
-
-GuidCreator
-
-"addChangeDetectors" hint
-
-TODO
+TODO describe GuidCreator
+TODO "addChangeDetectors" hint
