@@ -58,7 +58,7 @@ namespace harleydk.ComponentTamperDetection
             }
         }
 
-        private bool hasComponentChanged()
+        public bool HasComponentChanged()
         {
             long sumOfCurrentValues = _fieldsAndHashes.Sum(fh => (long)fh.Value);
             _latestHashes = calculateHashFromPublicFields();
@@ -70,7 +70,7 @@ namespace harleydk.ComponentTamperDetection
 
         private void ComponentTamperDetection_OnEditorValuesChanged()
         {
-            bool hasChanged = hasComponentChanged();
+            bool hasChanged = HasComponentChanged();
             if (hasChanged)
             {
                 Locked = false;
@@ -96,8 +96,6 @@ namespace harleydk.ComponentTamperDetection
         /// </remarks>
         public void OnValidate()
         {
-            Debug.Log($"OnValidate() called on {this.gameObject.name}-{this.name}");
-
             if (_isFirstTimeCalled)
             {
                 _isFirstTimeCalled = false;
@@ -120,7 +118,7 @@ namespace harleydk.ComponentTamperDetection
                     {
                         // The provided script does not implement the IComponentTamperDetection, and we will not be able to dynamically register component-changes.
                         // The best we can do, then, is to check for changes in this constructor.
-                        bool hasChanged = hasComponentChanged();
+                        bool hasChanged = HasComponentChanged();
                         if (hasChanged)
                         {
                             Locked = false;
@@ -213,6 +211,9 @@ namespace harleydk.ComponentTamperDetection
                 }
                 else if (objectRef is MonoBehaviour)
                 {
+                    if (objectRef == null)
+                        continue;
+
                     var GuidCreatorComponent = ((MonoBehaviour)objectRef).gameObject.GetComponent<GuidCreator>();
                     if (GuidCreatorComponent != null)
                     {
@@ -233,7 +234,7 @@ namespace harleydk.ComponentTamperDetection
                 }
                 else if (objectRef.GetType().IsPrimitive /* is float || objectRef is string || objectRef is int || objectRef is Enum */)
                 {
-                    int valueHash = objectRef.ToString().GetHashCode();
+                    int valueHash = objectRef.GetHashCode();
                     fieldsAndHashes.Add(field.Name, valueHash);
                 }
                 else if (typeof(IList).IsAssignableFrom(field.FieldType) && field.FieldType != typeof(string))
@@ -255,28 +256,45 @@ namespace harleydk.ComponentTamperDetection
                                 // corresponds with a 'None' list-item 
                             }
                         }
-                        else if (objectRef.GetType().IsPrimitive)
-                            hashCode += objectRef.ToString().GetHashCode();
+                        else if (value.GetType().IsPrimitive)
+                            hashCode += value.GetHashCode();
                     }
                     fieldsAndHashes.Add(field.Name, hashCode);
                 }
                 else if (objectRef is Component) // fx. Image, or Canvas
                 {
+                    if (objectRef == null)
+                        continue;
+
                     string gameObjectPath = GetGameObjectPath(((Component)objectRef).transform);
                     fieldsAndHashes.Add(field.Name, string.Join("§", gameObjectPath, ((Component)objectRef).name).GetHashCode());
                 }
                 else if (objectRef is GameObject)
                 {
-                    var GuidCreatorComponent = ((GameObject)objectRef).gameObject.GetComponent<GuidCreator>();
-                    if (GuidCreatorComponent != null)
+                    try
                     {
-                        // this gameobject has a GuidCreator-component, that we can get the better identity from.
-                        fieldsAndHashes.Add(field.Name, GuidCreatorComponent.Guid.GetHashCode());
+                        if (objectRef == null)
+                        {
+                            fieldsAndHashes.Add(field.Name, 0);
+                            continue;
+                        }
+
+                        string gameObjectPath = GetGameObjectPath(((GameObject)objectRef).transform);
+                        var GuidCreatorComponent = ((GameObject)objectRef).gameObject.GetComponent<GuidCreator>();
+                        if (GuidCreatorComponent != null)
+                        {
+                            // this gameobject has a GuidCreator-component, that we can get the better identity from.
+                            fieldsAndHashes.Add(field.Name, GuidCreatorComponent.Guid.GetHashCode());
+                        }
+                        else
+                        {
+                            string gameobjectPath = GetGameObjectPath(((GameObject)objectRef).transform);
+                            fieldsAndHashes.Add(field.Name, gameobjectPath.GetHashCode());
+                        }
                     }
-                    else
+                    catch (UnassignedReferenceException)
                     {
-                        string gameobjectPath = GetGameObjectPath(((GameObject)objectRef).transform);
-                        fieldsAndHashes.Add(field.Name, gameobjectPath.GetHashCode());
+                        fieldsAndHashes.Add(field.Name, 0);
                     }
                 }
                 else if (objectRef is string)
@@ -330,7 +348,7 @@ namespace harleydk.ComponentTamperDetection
             for (int eventHandlerIndex = 0; eventHandlerIndex < unityEventHandlers.arraySize; eventHandlerIndex++)
             {
                 UnityEngine.Object target = unityEventHandlers.GetArrayElementAtIndex(eventHandlerIndex).FindPropertyRelative("m_Target").objectReferenceValue;
-                if ( target == null)
+                if (target == null)
                 {
                     eventHandlerData.Add("unfinishedBusiness");
                     continue;
