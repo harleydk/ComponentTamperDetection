@@ -40,18 +40,33 @@ The 'Display/Hide component status'-button offers a peak of the calculated hash-
 
 Currently, the following types are covered: _string, float, int, bool, Color, Rect, Vector3, Vector2, UnityEvents, as well as references to either a Gameobject, MonoBehaviour, or Component. Also, collections with any of the above types.
 
+## How to install it
 
-### When are value-changes detected?
+It's easily installed via Unity's Package Manager. Copy the GitHub-repository URL ...
+
+![github-url](Documentation/gitUrl.png)
+
+... and paste it into the Package Manager:
+
+![package-mgr-paste](Documentation/addFromGit.png)
+
+![package-mgr-paste](Documentation/addedFromGit.png)
+
+The package manager alas doesn't automatically register any updates from the GitHub-repository. Don't be shy in trying the 'update' button to check for updates:
+
+![package-mgr-paste](Documentation/installed.png)
+
+## When are value-changes detected?
 
 There are two types of value-detections. 
 
-#### Fixed change detection
+### Fixed change detection
 
-This is the default value detection method. The referenced MonoBehaviour has no out-of-the-box way of telling the ComponentTamperDetection that it's values has changed, so any changes are calculated when the scene is loaded. So, if you have locked a component and then proceed to change a value of the associated MonoBehaviour, the green 'Locked' label will change to a red 'Not locked' label only when the scene is reloaded. Although not ideal, at least you will be in the know.
+This is the default value detection method. The referenced MonoBehaviour has no out-of-the-box way of telling the ComponentTamperDetection that its values has changed, so any changes are calculated when the scene is loaded. So, if you have locked a component and then proceed to change a value of the associated MonoBehaviour, the green 'Locked' label will change to a red 'Not locked' label _only when the scene is reloaded_. Although not ideal, at least you will be in the know.
 
-#### Dynamic change detection
+### Dynamic change detection
 
-The ideal detection method is letting the referenced MonoBehaviour tell the ComponentTamperDetection that some values have changed. If you implement the IComponentTamperDetection-interface and add the appropriate code to call the ComponentTamperDetection when changes are made ...
+The ideal detection method is letting the referenced MonoBehaviour tell the ComponentTamperDetection that some values have changed. If you implement the __IComponentTamperDetection__-interface and add the appropriate code to call the ComponentTamperDetection when changes are made ...
 
 ```
 using harleydk.ComponentTamperDetection;
@@ -60,10 +75,11 @@ using UnityEngine;
 
 namespace Assets
 {
-    public class GenericTest : MonoBehaviour, IComponentTamperDetection
+    public class YourMonoBehaviourScript : MonoBehaviour, IComponentTamperDetection
     {
         public event Action OnEditorValuesChanged;
 
+        // OnValidate is a Unity editor-only method that's called when a value inside the MonoBehaviour changes.
         public void OnValidate()
         {
             if (Application.isEditor && OnEditorValuesChanged != null)
@@ -76,7 +92,7 @@ namespace Assets
 }
 ```
 
-... the ComponentTamperDetection will react dynamically to any editor-changes made:
+... the ComponentTamperDetection will then react __dynamically__ to any editor-changes made:
 
 ![DynamicChanges](Documentation/dynamicChanges.gif)
 
@@ -112,12 +128,50 @@ public void ComponentsWithTamperDetectionHaveNotChanged()
         $"{string.Join(System.Environment.NewLine, changedComponents)}."); // no components should've been tampered with
 }
 
+The above unit-test finds all ComponentTamperDetectors with an associated MonoBehaviour, and compares their persisted values with their current ones. If any discrepencies are found, i.e. a ComponentChangeDetector isn't locked down or has registerered changed values, you will know about it.
+
 ```
 ## I get by with a little help from my friends
 
 <a href="https://www.buymeacoffee.com/Ghi82pFzV" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 
-## On GameObject comparison
+Really hope this helps you. I'm committed to fixing issues in the use of this component/this code. Create an issue and I'll look into it as soon 
+as I can.
 
-TODO describe GuidCreator
-TODO "addChangeDetectors" hint
+## [Not terribly important] On GameObject comparison/the GUID-creator
+
+Gameobject-references can be tricky to compare. There's the instance-ID of the Unity-object, but it's not set in stone. Best would be a static GUID-value, but that's not inherent - we have to make one ourselves. And so I did, and it's in the package for you to use, if you like, in your game-objects. Simply add it, and it will form a new GUID, unique to that GameObject.
+
+![guid-creator](Documentation/guidCreator.png)
+
+The ComponentTamperDetection will look for any GUID-Creators when calculating a hash-code for a GameObject-reference. If none is found, it will default to the full path of the GameObject; not necessarily unique, but at least somewhat unlikely to not be. And as good as it gets.
+
+## [Not terribly important either] The AddComponentChanges-editor
+
+Adding ComponentChangesDetectors to all of your MonoBehaviours might be a manuel hassle, if you're way into development and there's a ton of them. Therefore I implemented the AddComponentChanges-editor, accessible from the GameObject-menu:
+
+![add-to-all](Documentation/addToAll.png)
+
+The _&lt;name-of-your-monoBehaviours-marker-interface-here&gt;_ indeed requires you to specify the name of a [marker interface](https://blog.ndepend.com/marker-interface-isnt-pattern-good-idea/) that you've added on to your MonoBehaviour-scripts.
+
+![add-to-all](Documentation/nameOfInterface.png)
+
+The marker-interface is nothing but an empty interface, named to your own preference, that marks __your__ MonoBehaviours apart from all others. Fx.
+
+```
+public interface IMyAwesomeGame
+{
+    // deliberately empty marker-interface, meant only to tell game-specific MonoBehaviours from add-on MonoBehaviours.
+}
+
+public class SomeComponentForMyAwesomeGame : MonoBehaviour, IMyAwesomeGame
+{
+    ...
+}
+```
+
+That's what I use to separate my own components from those of plugins and packages, and though there are other ways about it (fx. derive your own MonoBehaviour-base) it works well for me. Being able to tell 
+
+ And if you buy into that, you can simply implement your marker-interface in all your MonoBehaviours and then add the name of your marker-interface to the above editor-window and press the 'Add ComponentTamperDetectors to all' and one ComponentTamperDetection-component will be added for each of your MonoBehaviours in the scene. 
+
+ The 'Delete all', in turn, removes all ComponentTamperDetectors that reference a MonoBehaviour which implements the marker-interface.

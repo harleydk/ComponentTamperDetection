@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace harleydk.ComponentTamperDetection
 {
@@ -23,4 +24,6 @@ namespace harleydk.ComponentTamperDetection
 
         void OnValidate();
     }
+
+
 }
