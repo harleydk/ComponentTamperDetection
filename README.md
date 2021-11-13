@@ -86,8 +86,7 @@ namespace Assets
                 OnEditorValuesChanged.Invoke();
         }
 
-        public float TestFloat;
-        public int TestInt;
+        ... your public fields here
     }
 }
 ```
