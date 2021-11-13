@@ -32,6 +32,10 @@ namespace harleydk.ComponentTamperDetection
         public List<GameObject> ListTestGO;
         public UnityEvent UnityEventTest;
 
+        public Transform TransformTest;
+        public RectTransform RectTransformTest;
+        public Transform BookLoadoutInitialTransform;
+
         public void SetFoobarTest(string data)
         {
             StringTest = data;

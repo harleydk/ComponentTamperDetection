@@ -20,6 +20,10 @@ namespace harleydk.ComponentTamperDetection
         public Vector2 Vector2Test;
         public UnityEvent UnityEventTest;
 
+        public Transform TransformTest;
+        public RectTransform RectTransformTest;
+        public Transform BookLoadoutInitialTransform;
+
         public void SetFoobarTest(string data)
         {
             StringTest = data;
