@@ -226,6 +226,17 @@ namespace harleydk.ComponentTamperDetection
             foreach (var field in fields)
             {
                 var objectRef = field.GetValue(ScriptReference);
+
+                try
+                {
+                    //string name = ((UnityEngine.Object)objectRef).name;
+                }
+                catch (UnassignedReferenceException ex)
+                {
+                    // corresponds with a 'None' list-item. No need to add anything here.
+                }
+
+
                 if (objectRef is null)
                 {
                     fieldsAndHashes.Add(field.Name, 0);
@@ -287,8 +298,15 @@ namespace harleydk.ComponentTamperDetection
                     if (objectRef == null)
                         continue;
 
-                    string gameObjectPath = GetGameObjectPath(((Component)objectRef).transform);
-                    fieldsAndHashes.Add(field.Name, string.Join("§", gameObjectPath, ((Component)objectRef).name).GetHashCode());
+                    try
+                    {
+                        string gameObjectPath = GetGameObjectPath(((Component)objectRef).transform);
+                        fieldsAndHashes.Add(field.Name, string.Join("§", gameObjectPath, ((Component)objectRef).name).GetHashCode());
+                    }
+                    catch (UnassignedReferenceException)
+                    {
+                        fieldsAndHashes.Add(field.Name, 0);
+                    }
                 }
                 else if (objectRef is GameObject)
                 {
