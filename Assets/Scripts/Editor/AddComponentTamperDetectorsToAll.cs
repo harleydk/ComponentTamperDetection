@@ -45,7 +45,7 @@ namespace harleydk.ComponentTamperDetection
 
         private void AddComponentDetectors(string interfaceName)
         {
-            //result = string.Empty;
+            result = string.Empty;
             var monobehavioursWithIDoYouBrainMarkerComponents = new List<MonoBehaviour>();
             var monobehaviours = GameObject.FindObjectsOfType<MonoBehaviour>().Where(mb => mb.GetType().GetInterfaces().Any(i => i.Name == interfaceName));
 
@@ -86,7 +86,7 @@ namespace harleydk.ComponentTamperDetection
 
         private void DeleteAllComponentDetectors()
         {
-            //result = string.Empty;
+            result = string.Empty;
             var monobehavioursWithIDoYouBrainMarkerComponents = new List<MonoBehaviour>();
             var monobehaviours = GameObject.FindObjectsOfType<MonoBehaviour>().Where(mb => mb.GetType().GetInterfaces().Any(i => i.Name == interfaceName));
             if (!monobehaviours.Any())
@@ -94,7 +94,6 @@ namespace harleydk.ComponentTamperDetection
                 EditorUtility.DisplayDialog("No components fond", $"Found no MonoBehaviours with a '{interfaceName} interface", "OK");
                 return;
             }
-
 
             int deletedCounter = 0;
             foreach (var monobehaviour in monobehaviours)
