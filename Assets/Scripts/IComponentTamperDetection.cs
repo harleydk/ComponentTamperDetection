@@ -1,5 +1,4 @@
 ﻿using System;
-using UnityEngine;
 
 namespace harleydk.ComponentTamperDetection
 {
@@ -7,7 +6,6 @@ namespace harleydk.ComponentTamperDetection
     /// Implementations of this contract must implement Unity's MonoBehaviour.OnValidate and
     /// invoke the OnEditorValuesChanged action when that OnValidate is called.
     /// </summary>
-    /// <seealso cref="ComponentTamperDetectionEditor"/>
     /// <seealso cref="ComponentTamperDetection"/>
     /// <remarks>
     /// 
@@ -24,6 +22,4 @@ namespace harleydk.ComponentTamperDetection
 
         void OnValidate();
     }
-
-
 }

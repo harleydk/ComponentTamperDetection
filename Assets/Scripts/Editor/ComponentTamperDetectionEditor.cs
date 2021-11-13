@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -19,15 +18,11 @@ namespace harleydk.ComponentTamperDetection
 
         public override void OnInspectorGUI()
         {
-            // https://answers.unity.com/questions/1154384/labelfield-wont-change-background-color.html
-            //iOSAppInBackgroundBehavior-Color: green, red(white text);
-            setupRichText();
-
-            ComponentTamperDetection tamperDetectionTarget = (ComponentTamperDetection)target;
+            setupGuiStyles();
             DrawDefaultInspector();
 
-
-            if (tamperDetectionTarget.Locked && !string.IsNullOrWhiteSpace(tamperDetectionTarget.LockDateTicks))
+            ComponentTamperDetection tamperDetectionTarget = (ComponentTamperDetection)target;
+            if (tamperDetectionTarget.ScriptReference != null && tamperDetectionTarget.Locked && !string.IsNullOrWhiteSpace(tamperDetectionTarget.LockDateTicks))
             {
                 DateTime dt = new DateTime(Convert.ToInt64(tamperDetectionTarget.LockDateTicks));
                 EditorGUILayout.LabelField($"<color=black><b>Locked - { dt.ToShortDateString()} {dt.ToString("HH:mm:ss")}</b></color>", lockedGuiStyle);
@@ -38,7 +33,7 @@ namespace harleydk.ComponentTamperDetection
             if (GUILayout.Button("Lock"))
             {
                 if (tamperDetectionTarget.ScriptReference == null)
-                    EditorUtility.DisplayDialog("Whoops", "Missing script-ref.", "OK");
+                    EditorUtility.DisplayDialog("Missing reference", "Cannot lock values - there's no referenced MonoBehaviour added.", "My bad");
                 else
                     tamperDetectionTarget.Lock();
             }
@@ -97,7 +92,7 @@ namespace harleydk.ComponentTamperDetection
             }
         }
 
-        public void setupRichText()
+        public void setupGuiStyles()
         {
             // Set up our default, rich text label
             if (rt == null)
@@ -173,7 +168,4 @@ namespace harleydk.ComponentTamperDetection
             notlockedGuiStyle.normal.background = notLockedTexture;
         }
     }
-
-
-
 }

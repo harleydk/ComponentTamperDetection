@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -11,63 +10,137 @@ using UnityEngine.Events;
 
 namespace harleydk.ComponentTamperDetection
 {
+    /// <summary>
+    /// The ComponentTamperDetection holds a reference to a MonoBehaviour and allows for, by the press of a button, 'locking' its 
+    /// public-values in place. Later unforseen changes to these values can then be accounted for.
+    /// </summary>
     public class ComponentTamperDetection : MonoBehaviour
     {
-        public MonoBehaviour ScriptReference;
+        public MonoBehaviour ScriptReference; // Reference to the MonoBehaviour that should be 'locked down'.
 
         [HideInInspector]
-        public string LockDateTicks;
+        public bool Locked; // Is the referenced MonoBehaviour locked down?
+        
+        [HideInInspector]
+        public string LockDateTicks; // When was the referenced Monobehaviour locked?
 
         [HideInInspector]
-        public bool Locked;
+        public bool ShowInputDebugger = false; // Should we show, in the editor, the various calculated hash-codes.
 
         [HideInInspector]
-        public bool ShowInputDebugger = false;
-
-        [HideInInspector]
-        public string fieldsAndHashes;
+        public string fieldsAndHashes; // A serialized dictionary with field-names and their calculated hash-codes
         public Dictionary<string, int> _fieldsAndHashes { get; set; }
 
         [HideInInspector]
-        public string latestHashes;
-        public Dictionary<string, int> _latestHashes { get; set; } // shadow values, we can compare changes against
+        public string latestHashes; // A serialized dictionary with field-names and calculated hash-codes, to compare against the locked-down hash-codes.
+        public Dictionary<string, int> _latestHashes { get; set; } 
 
-        private bool _isFirstTimeCalled;
-        private bool subscribesToChangesInReferredMonobehaviour;
+        private bool _isFirstTimeCalled; // Set to 'true' the first time the component is loaded - allows us to do some setting-up in the OnValidate() method.
+        
+        [HideInInspector]
+        public bool MonoBehaviourImplementsIComponentTamperDetection;// Does the referenced MonoBehaviour implement IComponentTamperDetection, i.e. automatically call back when changes are made?
 
         [HideInInspector]
-        public string currentScriptRefId; // we keep a reference to the current scriptref-object, so we can - in OnValidate - check if it has been changed.
+        public string scriptReferenceId; // we keep a reference to the current MonoBehaviour-reference, so we can - in OnValidate - check if it has been changed to a different one.
 
         public ComponentTamperDetection()
         {
-            Debug.Log("Constructed ComponentTamperDetection object");
             _isFirstTimeCalled = true;
             ShowInputDebugger = true;
-
         }
 
+        /// <summary>
+        /// Triggers when the script is loaded into the editor, something is changing the Unity Editor GUI for this component. 
+        /// </summary>
+        /// <remarks>
+        /// OnValidate will be called when the Unity editor loads the scene, with the component inside. Where we utilize 
+        /// a _isFirstTimeCalled bool to indicate this, so we can re-populate the internal dictionaries and re-create 
+        /// the IComponentTamperDetection-callback, if possible.
+        /// </remarks>
+        public void OnValidate()
+        {
+            if (_isFirstTimeCalled)
+            {
+                if (ScriptReference != null)
+                {
+                    // It's the first time this component is loaded, and we therefore have some some setup-work to do.
+                    if (!string.IsNullOrWhiteSpace(fieldsAndHashes))
+                        _fieldsAndHashes = deserializesDicionary(fieldsAndHashes);
+
+                    if (!string.IsNullOrWhiteSpace(latestHashes))
+                        _latestHashes = deserializesDicionary(latestHashes);
+
+                    scriptReferenceId = GetComponentPath(ScriptReference) + ScriptReference.GetInstanceID().ToString();
+
+                    bool implementsIComponentTamperDetection = ScriptReference.GetType().GetInterfaces().Contains(typeof(IComponentTamperDetection));
+                    if (implementsIComponentTamperDetection)
+                    {
+                        addChangeDetectHandlerIfPossible(ScriptReference);
+                    }
+                    else
+                    {
+                        // The provided script does not implement the IComponentTamperDetection, and we will not be able to dynamically register component-changes.
+                        // The best we can do, then, is to check for changes when the component is first loaded.
+                        bool hasChanged = HasComponentChanged();
+                        if (hasChanged)
+                        {
+                            Locked = false;
+                            LockDateTicks = null;
+                            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                        }
+                    }
+                }
+
+                _isFirstTimeCalled = false;
+                return;
+            }
+
+            if (ScriptReference is null)
+            {
+                Debug.LogWarning($"Scriptref on component {this.name} on GO {this.gameObject.name} should not be null.");
+                return;
+            }
+
+            // If the Monobehaviour-reference has changed, we'll re-calculate.
+            string currentScriptRefId = GetComponentPath(ScriptReference) + ScriptReference.GetInstanceID().ToString();
+            if (scriptReferenceId != currentScriptRefId)
+            {
+                // If a new script is referenced, we must re-calculate the hashes
+                Locked = false;
+                LockDateTicks = null;
+
+                _fieldsAndHashes = calculateHashFromPublicFields();
+                fieldsAndHashes = serializeDicionary(_fieldsAndHashes);
+                latestHashes = null;
+                _latestHashes = null;
+
+                addChangeDetectHandlerIfPossible(ScriptReference);
+                scriptReferenceId = currentScriptRefId;
+
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            }
+        }
+
+        /// <summary>
+        /// If the referenced MonoBehaviour implements the IComponentTamperDetection-interface, we hook on to its OnEditorValuesChanged-event.
+        /// </summary>
+        /// <see cref="IComponentTamperDetection"/>
         private void addChangeDetectHandlerIfPossible(MonoBehaviour scriptRef)
         {
             bool implementsIComponentTamperDetection = scriptRef.GetType().GetInterfaces().Contains(typeof(IComponentTamperDetection));
             if (!implementsIComponentTamperDetection)
                 Debug.LogWarning($"ScriptRef on component {scriptRef.name} on GO {scriptRef.gameObject.name} doesn't implement IComponentTamperDetection. We will not be able to dynamically detect changes.");
-            else if (implementsIComponentTamperDetection && !subscribesToChangesInReferredMonobehaviour)
+            else if (implementsIComponentTamperDetection && !MonoBehaviourImplementsIComponentTamperDetection)
             {
                 ((IComponentTamperDetection)scriptRef).OnEditorValuesChanged += ComponentTamperDetection_OnEditorValuesChanged;
-                subscribesToChangesInReferredMonobehaviour = true;
+                MonoBehaviourImplementsIComponentTamperDetection = true;
             }
         }
 
-        public bool HasComponentChanged()
-        {
-            long sumOfCurrentValues = _fieldsAndHashes.Sum(fh => (long)fh.Value);
-            _latestHashes = calculateHashFromPublicFields();
-            latestHashes = serializeDicionary(_latestHashes);
-            long sumOfLatestValues = _latestHashes.Sum(lv => (long)lv.Value);
-
-            return sumOfCurrentValues != sumOfLatestValues;
-        }
-
+        /// <summary>
+        /// Event-handling for the OnEditorValuesChanged-event, fired (supposedly) by the OnValidate-method of the referenced MonoBehaviour.
+        /// Here we check for changes - and 'unlock' the component if anything has in fact changed.
+        /// </summary>
         private void ComponentTamperDetection_OnEditorValuesChanged()
         {
             bool hasChanged = HasComponentChanged();
@@ -80,81 +153,23 @@ namespace harleydk.ComponentTamperDetection
             }
         }
 
-        private void OnDestroy()
+        /// <summary>
+        /// Compares the currently locked hash-codes against freshly calculated ones.
+        /// </summary>
+        /// <returns>true if changes have been made since lock-down, false otherwise</returns>
+        public bool HasComponentChanged()
         {
-            bool implementsIComponentTamperDetection = ScriptReference.GetType().GetInterfaces().Contains(typeof(IComponentTamperDetection));
-            if (implementsIComponentTamperDetection)
-                ((IComponentTamperDetection)ScriptReference).OnEditorValuesChanged -= ComponentTamperDetection_OnEditorValuesChanged;
+            long sumOfCurrentValues = _fieldsAndHashes.Sum(fh => (long)fh.Value);
+            _latestHashes = calculateHashFromPublicFields();
+            latestHashes = serializeDicionary(_latestHashes);
+            long sumOfLatestValues = _latestHashes.Sum(lv => (long)lv.Value);
+
+            return sumOfCurrentValues != sumOfLatestValues;
         }
 
         /// <summary>
-        /// Triggers when the script is loaded into the editor, something is changing the Unity Editor GUI for this component. 
+        /// Turns a dictionary into a string
         /// </summary>
-        /// <remarks>
-        /// OnValidate will be called when the Unity editor loads the scene, with the component inside. Where we utilize 
-        /// a _isFirstTimeCalled bool to indicate this, so we can set the 
-        /// </remarks>
-        public void OnValidate()
-        {
-            if (_isFirstTimeCalled)
-            {
-                _isFirstTimeCalled = false;
-                if (ScriptReference != null)
-                {
-                    if (!string.IsNullOrWhiteSpace(fieldsAndHashes))
-                        _fieldsAndHashes = deserializesDicionary(fieldsAndHashes);
-
-                    if (!string.IsNullOrWhiteSpace(latestHashes))
-                        _latestHashes = deserializesDicionary(latestHashes);
-
-                    currentScriptRefId = GetComponentPath(ScriptReference);
-
-                    bool implementsIComponentTamperDetection = ScriptReference.GetType().GetInterfaces().Contains(typeof(IComponentTamperDetection));
-                    if (implementsIComponentTamperDetection)
-                    {
-                        addChangeDetectHandlerIfPossible(ScriptReference);
-                    }
-                    else
-                    {
-                        // The provided script does not implement the IComponentTamperDetection, and we will not be able to dynamically register component-changes.
-                        // The best we can do, then, is to check for changes in this constructor.
-                        bool hasChanged = HasComponentChanged();
-                        if (hasChanged)
-                        {
-                            Locked = false;
-                            LockDateTicks = null;
-                            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-                        }
-                    }
-                }
-
-                return;
-            }
-
-            string fds = GetComponentPath(ScriptReference);
-            if (ScriptReference is null)
-            {
-                Debug.LogWarning($"Scriptref on component {this.name} on GO {this.gameObject.name} should not be null.");
-                return;
-            }
-            else if (currentScriptRefId != GetComponentPath(ScriptReference))
-            {
-                // If a new script is referenced, we must re-calculate the hashes
-                Locked = false;
-                LockDateTicks = null;
-
-                _fieldsAndHashes = calculateHashFromPublicFields();
-                fieldsAndHashes = serializeDicionary(_fieldsAndHashes);
-                latestHashes = null;
-                _latestHashes = null;
-
-                addChangeDetectHandlerIfPossible(ScriptReference);
-                currentScriptRefId = GetComponentPath(ScriptReference);
-
-                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            }
-        }
-
         private string serializeDicionary(Dictionary<string, int> dictionary)
         {
             var items = dictionary.Select(d => string.Join(";", d.Key, d.Value));
@@ -162,6 +177,9 @@ namespace harleydk.ComponentTamperDetection
             return serializedDict;
         }
 
+        /// <summary>
+        /// Turns a string into a dictionary
+        /// </summary>
         private Dictionary<string, int> deserializesDicionary(string fieldsAndHashes)
         {
             string[] items = fieldsAndHashes.Split('§');
@@ -176,8 +194,8 @@ namespace harleydk.ComponentTamperDetection
         }
 
         /// <summary>
-        /// Generates a hash-value for all public properties of
-        /// the monobehaviour, i.e. those values we can set in the editor.
+        /// Generates a hash-value for all public fields of the referenced MonoBehaviour, i.e. those values we can set in the editor.
+        /// Marks the component as 'locked' and stores calculated hash-codes from those public fields.
         /// </summary>
         public void Lock()
         {
@@ -195,6 +213,9 @@ namespace harleydk.ComponentTamperDetection
             Debug.Log($"Locked: {this.Locked}");
         }
 
+        /// <summary>
+        /// Iterates all public fields of the referenced MonoBehaviour and populates a dictionary with hash-codes.
+        /// </summary>
         private Dictionary<string, int> calculateHashFromPublicFields()
         {
             var fieldsAndHashes = new Dictionary<string, int>();
@@ -253,7 +274,7 @@ namespace harleydk.ComponentTamperDetection
                             }
                             catch (UnassignedReferenceException)
                             {
-                                // corresponds with a 'None' list-item 
+                                // corresponds with a 'None' list-item. No need to add anything here.
                             }
                         }
                         else if (value.GetType().IsPrimitive)
@@ -338,6 +359,9 @@ namespace harleydk.ComponentTamperDetection
             return fieldsAndHashes;
         }
 
+        /// <summary>
+        /// Builds a composite string from a unity-event handler, i.e. from the event's referenced game-object, method, and any arguments attached.
+        /// </summary>
         public static string GetUnityEventValue(object componentWithEvents, string unityEventName)
         {
             List<string> eventHandlerData = new List<string>();
@@ -389,12 +413,15 @@ namespace harleydk.ComponentTamperDetection
                     }
 
                     eventHandlerData.Add(value);
-                } // end if any parameters to this unity event-handler
+                } // 'end-if' this unity event-handler has arguments.
             }
 
             return string.Join("§", eventHandlerData);
         }
 
+        /// <summary>
+        /// Calculates a full game-object path for a transform
+        /// </summary>
         public static string GetGameObjectPath(Transform transform)
         {
             string path = transform.name;
@@ -406,6 +433,9 @@ namespace harleydk.ComponentTamperDetection
             return path;
         }
 
+        /// <summary>
+        /// Calculates a full path, parent gameobject inclusive, for a given MonoBehaviour.
+        /// </summary>
         public static string GetComponentPath(MonoBehaviour monoBehaviour)
         {
             string gameobjectPath = GetGameObjectPath(monoBehaviour.transform);
@@ -413,5 +443,16 @@ namespace harleydk.ComponentTamperDetection
 
             return string.Join("§", gameobjectPath, componentName);
         }
+
+        /// <summary>
+        /// We'll remember to disconnect any event handlers we might've added.
+        /// </summary>
+        private void OnDestroy()
+        {
+            bool implementsIComponentTamperDetection = ScriptReference.GetType().GetInterfaces().Contains(typeof(IComponentTamperDetection));
+            if (implementsIComponentTamperDetection)
+                ((IComponentTamperDetection)ScriptReference).OnEditorValuesChanged -= ComponentTamperDetection_OnEditorValuesChanged;
+        }
+
     }
 }

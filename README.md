@@ -98,7 +98,14 @@ namespace Assets
 
 This is the preferred option, as it will immediately give you a visual clue that something is amiss.
 
-## Unit-testing
+## I get by with a little help from my friends
+
+<a href="https://www.buymeacoffee.com/Ghi82pFzV" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+
+Really hope this helps you. I'm committed to fixing issues in the use of this component/this code. Create an issue and I'll look into it as soon 
+as I can.
+
+## Usage in Unit-testing
 
 Visual observation is one thing - but when it gets time to distribute your game, you would ideally have a number of automated tests you can execute, that will give you confidence you're shipping a stable product.
 
@@ -131,12 +138,7 @@ public void ComponentsWithTamperDetectionHaveNotChanged()
 The above unit-test finds all ComponentTamperDetectors with an associated MonoBehaviour, and compares their persisted values with their current ones. If any discrepencies are found, i.e. a ComponentChangeDetector isn't locked down or has registerered changed values, you will know about it.
 
 ```
-## I get by with a little help from my friends
 
-<a href="https://www.buymeacoffee.com/Ghi82pFzV" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
-
-Really hope this helps you. I'm committed to fixing issues in the use of this component/this code. Create an issue and I'll look into it as soon 
-as I can.
 
 ## [Not terribly important] On GameObject comparison/the GUID-creator
 

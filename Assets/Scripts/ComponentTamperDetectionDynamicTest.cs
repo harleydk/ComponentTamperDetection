@@ -5,6 +5,10 @@ using UnityEngine.Events;
 
 namespace harleydk.ComponentTamperDetection
 {
+    /// <summary>
+    /// A test MonoBehaviour for the ComponentTamperDetection component. Implements the IComponentTamperDetection-interface and 
+    /// thus allows the ComponentTamperDetection to automatically register value-changes.
+    /// </summary>
     public class ComponentTamperDetectionDynamicTest : MonoBehaviour, IComponentTamperDetection
     {
         public event Action OnEditorValuesChanged;

@@ -3,6 +3,10 @@ using UnityEngine.Events;
 
 namespace harleydk.ComponentTamperDetection
 {
+    /// <summary>
+    /// A test MonoBehaviour for the ComponentTamperDetection component. Doen't implement the IComponentTamperDetection-interface and 
+    /// there does not allows the ComponentTamperDetection to automatically register value-changes - they become evident upon scene load.
+    /// </summary>
     public class ComponentTamperDetectionNonDynamicTest : MonoBehaviour
     {
         public bool BoolTest;
