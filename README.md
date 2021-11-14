@@ -133,10 +133,9 @@ public void ComponentsWithTamperDetectionHaveNotChanged()
         $" If they seem fine, lock them down, else restore them to their former glory. \n" +
         $"{string.Join(System.Environment.NewLine, changedComponents)}."); // no components should've been tampered with
 }
+```
 
 The above unit-test finds all ComponentTamperDetectors with an associated MonoBehaviour, and compares their persisted values with their current ones. If any discrepencies are found, i.e. a ComponentChangeDetector isn't locked down or has registerered changed values, you will know about it.
-
-```
 
 
 ## [Not terribly important] On GameObject comparison/the GUID-creator
