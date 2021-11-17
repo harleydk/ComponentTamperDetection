@@ -159,6 +159,12 @@ namespace harleydk.ComponentTamperDetection
         /// <returns>true if changes have been made since lock-down, false otherwise</returns>
         public bool HasComponentChanged()
         {
+            if ( _fieldsAndHashes == null)
+            {
+                Debug.LogWarning($"ComponentTamperDetection for script-reference {scriptReferenceId} is null - the script likely has no public fields. Did you mean to reference another MonoBehaviour-script?");
+                return false;
+            }
+
             long sumOfCurrentValues = _fieldsAndHashes.Sum(fh => (long)fh.Value);
             _latestHashes = calculateHashFromPublicFields();
             latestHashes = serializeDicionary(_latestHashes);
