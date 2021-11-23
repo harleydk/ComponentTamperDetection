@@ -78,7 +78,9 @@ namespace harleydk.ComponentTamperDetection
                     {
                         Locked = false;
                         LockDateTicks = null;
-                        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
+                        if (!Application.isPlaying)
+                            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
                     }
                 }
 
@@ -108,7 +110,9 @@ namespace harleydk.ComponentTamperDetection
                 addChangeDetectHandlerIfPossible(ScriptReference);
                 scriptReferenceId = currentScriptRefId;
 
-                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                if (!Application.isPlaying)
+                    EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
             }
         }
 
@@ -137,7 +141,9 @@ namespace harleydk.ComponentTamperDetection
                 Locked = false;
                 LockDateTicks = null;
 
-                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                if (!Application.isPlaying)
+                    EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
             }
         }
 
