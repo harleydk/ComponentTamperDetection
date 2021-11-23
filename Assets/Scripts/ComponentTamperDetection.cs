@@ -362,6 +362,63 @@ namespace harleydk.ComponentTamperDetection
                         fieldsAndHashes.Add(field.Name, eventsValue.GetHashCode());
                     }
                 }
+                else if (objectRef is UnityEvent<int>)
+                {
+                    var theUnityEvent = ((UnityEvent<int>)objectRef);
+                    if (theUnityEvent.GetPersistentEventCount() == 0)
+                    {
+                        fieldsAndHashes.Add(field.Name, 0);
+                    }
+                    else
+                    {
+                        string eventsValue = GetUnityEventValue(ScriptReference, field.Name);
+                        fieldsAndHashes.Add(field.Name, eventsValue.GetHashCode());
+                    }
+                }
+                else if (objectRef is UnityEvent<float>)
+                {
+                    var theUnityEvent = ((UnityEvent<float>)objectRef);
+                    if (theUnityEvent.GetPersistentEventCount() == 0)
+                    {
+                        fieldsAndHashes.Add(field.Name, 0);
+                    }
+                    else
+                    {
+                        string eventsValue = GetUnityEventValue(ScriptReference, field.Name);
+                        fieldsAndHashes.Add(field.Name, eventsValue.GetHashCode());
+                    }
+                }
+                else if (objectRef is UnityEvent<bool>)
+                {
+                    var theUnityEvent = ((UnityEvent<bool>)objectRef);
+                    if (theUnityEvent.GetPersistentEventCount() == 0)
+                    {
+                        fieldsAndHashes.Add(field.Name, 0);
+                    }
+                    else
+                    {
+                        string eventsValue = GetUnityEventValue(ScriptReference, field.Name);
+                        fieldsAndHashes.Add(field.Name, eventsValue.GetHashCode());
+                    }
+                }
+                else if (objectRef is UnityEvent<string>)
+                {
+                    var theUnityEvent = ((UnityEvent<string>)objectRef);
+                    if (theUnityEvent.GetPersistentEventCount() == 0)
+                    {
+                        fieldsAndHashes.Add(field.Name, 0);
+                    }
+                    else
+                    {
+                        string eventsValue = GetUnityEventValue(ScriptReference, field.Name);
+                        fieldsAndHashes.Add(field.Name, eventsValue.GetHashCode());
+                    }
+                }
+                else if (objectRef is Enum)
+                {
+                    string enumValue = ((Enum)objectRef).ToString();
+                    fieldsAndHashes.Add(field.Name, enumValue.GetHashCode());
+                }
                 else
                 {
                     Debug.LogWarning($"Could not get hash-code for field {field.Name} on MonoBehaviour {ScriptReference.name} | GO {ScriptReference.gameObject.name}");

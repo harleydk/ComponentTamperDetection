@@ -31,14 +31,22 @@ namespace harleydk.ComponentTamperDetection
         public List<int> ListTestPrimitive;
         public List<GameObject> ListTestGO;
         public UnityEvent UnityEventTest;
+        public UnityEvent<int> UnityEventFloatTest;
+        public UnityEvent<bool> UnityEventBoolTest;
+        public UnityEvent<string> UnityEventstringTest;
 
         public Transform TransformTest;
         public RectTransform RectTransformTest;
         public Transform BookLoadoutInitialTransform;
+        public TestEnum EnumTest;
 
         public void SetFoobarTest(string data)
         {
             StringTest = data;
+        }
+        public void SetFoobarBoolTest(bool data)
+        {
+            BoolTest = data;
         }
         public void SetFoobaFloat(float data)
         {
@@ -59,5 +67,11 @@ namespace harleydk.ComponentTamperDetection
         {
             GameObjectRefTest = data;
         }
+    }
+
+    public enum TestEnum
+    {
+        Test1,
+        Test2
     }
 }
