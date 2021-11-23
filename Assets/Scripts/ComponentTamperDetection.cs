@@ -20,7 +20,7 @@ namespace harleydk.ComponentTamperDetection
 
         [HideInInspector]
         public bool Locked; // Is the referenced MonoBehaviour locked down?
-        
+
         [HideInInspector]
         public string LockDateTicks; // When was the referenced Monobehaviour locked?
 
@@ -33,12 +33,9 @@ namespace harleydk.ComponentTamperDetection
 
         [HideInInspector]
         public string latestHashes; // A serialized dictionary with field-names and calculated hash-codes, to compare against the locked-down hash-codes.
-        public Dictionary<string, int> _latestHashes { get; set; } 
+        public Dictionary<string, int> _latestHashes { get; set; }
 
         private bool _isFirstTimeCalled; // Set to 'true' the first time the component is loaded - allows us to do some setting-up in the OnValidate() method.
-        
-        [HideInInspector]
-        public bool MonoBehaviourImplementsIComponentTamperDetection;// Does the referenced MonoBehaviour implement IComponentTamperDetection, i.e. automatically call back when changes are made?
 
         [HideInInspector]
         public string scriptReferenceId; // we keep a reference to the current MonoBehaviour-reference, so we can - in OnValidate - check if it has been changed to a different one.
@@ -72,22 +69,16 @@ namespace harleydk.ComponentTamperDetection
 
                     scriptReferenceId = GetComponentPath(ScriptReference) + ScriptReference.GetInstanceID().ToString();
 
-                    bool implementsIComponentTamperDetection = ScriptReference.GetType().GetInterfaces().Contains(typeof(IComponentTamperDetection));
-                    if (implementsIComponentTamperDetection)
+                    addChangeDetectHandlerIfPossible(ScriptReference);
+
+                    // No matter if the provided script implements the IComponentTamperDetection,
+                    // we check for changes when the component is first loaded.
+                    bool hasChanged = HasComponentChanged();
+                    if (hasChanged)
                     {
-                        addChangeDetectHandlerIfPossible(ScriptReference);
-                    }
-                    else
-                    {
-                        // The provided script does not implement the IComponentTamperDetection, and we will not be able to dynamically register component-changes.
-                        // The best we can do, then, is to check for changes when the component is first loaded.
-                        bool hasChanged = HasComponentChanged();
-                        if (hasChanged)
-                        {
-                            Locked = false;
-                            LockDateTicks = null;
-                            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-                        }
+                        Locked = false;
+                        LockDateTicks = null;
+                        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
                     }
                 }
 
@@ -130,11 +121,8 @@ namespace harleydk.ComponentTamperDetection
             bool implementsIComponentTamperDetection = scriptRef.GetType().GetInterfaces().Contains(typeof(IComponentTamperDetection));
             if (!implementsIComponentTamperDetection)
                 Debug.LogWarning($"ScriptRef on component {scriptRef.name} on GO {scriptRef.gameObject.name} doesn't implement IComponentTamperDetection. We will not be able to dynamically detect changes.");
-            else if (implementsIComponentTamperDetection && !MonoBehaviourImplementsIComponentTamperDetection)
-            {
+            else
                 ((IComponentTamperDetection)scriptRef).OnEditorValuesChanged += ComponentTamperDetection_OnEditorValuesChanged;
-                MonoBehaviourImplementsIComponentTamperDetection = true;
-            }
         }
 
         /// <summary>
@@ -159,7 +147,7 @@ namespace harleydk.ComponentTamperDetection
         /// <returns>true if changes have been made since lock-down, false otherwise</returns>
         public bool HasComponentChanged()
         {
-            if ( _fieldsAndHashes == null)
+            if (_fieldsAndHashes == null)
             {
                 Debug.LogWarning($"ComponentTamperDetection for script-reference {scriptReferenceId} is null - the script likely has no public fields. Did you mean to reference another MonoBehaviour-script?");
                 return false;
